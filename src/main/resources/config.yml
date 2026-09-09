@@ -1,0 +1,595 @@
+# ============================================================
+# KaelorvynGuard 反作弊配置
+# 所有参数热重载：修改后执行 /kg reload 立即生效，无需重新上架插件。
+# 数值方向：越大通常越宽松/越不容易误报，越小越严格/越容易误判。
+# ============================================================
+
+engine:
+  # 是否启用 PacketEvents 封包监听；false 时降级为 Bukkit 事件采集
+  packet-enabled: true
+  # 统计窗口刷新粒度（tick），移动/攻击封包仍实时处理
+  window-ticks: 20
+
+active-detection:
+  # false：只采集行为证据并保留模组审计；不主动告警、AI复核或处罚
+  enabled: false
+
+checks:
+  flight:
+    enabled: true
+    # 判定前最少连续空中 tick（防跳跃/下坡误报）
+    min-air-ticks: 15
+    # 单 tick 最大合法上升速度（含跳跃提升的宽松上限）
+    max-up-speed: 0.66
+    # 持续爬升判定：单 tick 最小上升量
+    ascent-min-dy: 0.03
+    # 持续爬升判定：连续满足的最小 tick 数
+    ascent-min-ticks: 6
+    # 下降超过该值会重置爬升计数（正常下落/落地）
+    ascent-reset-dy: -0.08
+    # 空中悬浮移动：额外 air tick 条件
+    air-move-extra-ticks: 15
+    air-move-min-speed: 0.05
+    air-move-min-dy: -0.05
+    # 上升速度与跳跃极限的倍率
+    up-over-jump-ratio: 1.15
+    # 悬停判定允许的最大垂直抖动
+    hover-max-dy: 0.02
+    hover-extra-ticks: 20
+    # 同玩家 Flight 告警冷却（毫秒），防刷屏
+    emit-cooldown-ms: 5000
+  speed:
+    enabled: true
+    # 移动包络倍率（1 = 原版极限，宽松防误报）
+    tolerance: 2.2
+    # 超过该间隔的位移视为卡顿合并，不判速
+    interval-max-ms: 120
+    # 空中动量容差倍率，防疾跑跳误报
+    air-multiplier: 1.6
+    # 低于该水平速度不判速（静止/微动）
+    min-horizontal: 0.6
+  nofall:
+    enabled: true
+    # 下落距离超过该值仍谎报落地才判
+    max-fall-distance: 3.0
+  phase:
+    enabled: true
+    # true 只用完整实心方块判穿墙，光源/台阶/楼梯不算
+    only-full-blocks: true
+  timer:
+    enabled: true
+    # 移动包早于服务器时间该毫秒数视为 Timer
+    drift-ms: 120
+    # 突发封包计数上限
+    burst-packets: 15
+    # Timer 连续命中多少次才告警
+    balance-threshold: 5
+    # 小于该间隔的移动包计入突发
+    min-interval-ms: 5
+  reach:
+    enabled: true
+    # 基础攻击距离（原版约 3.0）
+    base-reach: 3.0
+    # 延迟补偿：ping * factor
+    ping-factor: 0.0028
+    # 延迟补偿上限
+    ping-cap: 0.55
+    # 常规容差
+    margin: 0.03
+    # 老协议（1.8 及更早）额外容差
+    legacy-margin: 0.1
+    # 隔墙攻击判定：距离在 max + margin 内才检查墙体
+    through-walls-margin: 0.1
+  aim:
+    enabled: true
+    # 最少样本数后才计算 GCD
+    min-samples: 40
+    # GCD 低于该值判定锁头
+    gcd-max: 0.001
+    # 旋转标准差上限
+    std-max: 0.8
+  aimsnap:
+    enabled: true
+    # 单帧旋转超过该角度视为瞬移旋转
+    yaw: 320
+    # 前一帧旋转小于该角度（静默突变）
+    prior: 30
+  autoclicker:
+    enabled: true
+    min-samples: 25
+    # 每秒点击数上限（真实 CPS，超过该值才判连点器）
+    max-cps: 20
+    # 点击间隔变异系数上限（越规律越可疑）
+    cv-max: 0.15
+    # 点击间隔熵上限（越低越规律）
+    entropy-max: 2.2
+    # 平均间隔必须大于该值（排除正常高频手速）
+    min-interval-ms: 10
+    # 分桶统计间隔（毫秒），用于找完全重复节奏
+    bin-ms: 5
+    # 同一节奏桶重复多少次判定连点器
+    perfect-repeat: 8
+    # 统计窗口（毫秒）
+    window-ms: 1000
+  killaura:
+    enabled: true
+    # 攻击朝向与视线夹角超过该角度才判
+    max-angle: 90
+  multitarget:
+    enabled: true
+    # 短时间内攻击的目标数上限（群战/多敌人时放宽）
+    max-targets: 4
+  noswing:
+    # 关闭：只认服务端真实结果，不按客户端挥动/攻击包判断
+    enabled: false
+    # 连续多少次攻击无挥动才判
+    attack-threshold: 5
+    # 挖方块最后一次挥动超过该毫秒数判无挥动
+    break-ms: 600
+    # 攻击后超过该毫秒数无挥动才开始计数
+    attack-window-ms: 1000
+  autoswitch:
+    # 攻击前多少毫秒内切热键栏视为自动切刀
+    window-ms: 50
+    # 每命中几次自动切刀发一次告警
+    emit-every: 3
+  knockback:
+    # 关闭：击退位移受版本/网络/延迟影响大，容易误判
+    enabled: false
+    # 击退生效窗口（毫秒）
+    window-ms: 400
+    # 击退速度低于该值不判（避免极弱击退误报）
+    min-kb-speed: 0.01
+    # 最小应位移（blocks/tick），低于该值不判位移不足
+    min-move: 0.005
+    # 收到击退后超过该毫秒数未产生位移开始检查
+    timeout-ms: 2000
+    # 实际位移低于理论击退 * ratio 视为抗击退
+    min-ratio: 0.3
+    # 连续几次弱位移才告警
+    weak-ticks: 3
+  blink:
+    enabled: false
+    # 战斗期间静默超过该毫秒数后恢复才判
+    min-silence-ms: 1000
+    # 距上次攻击超过该毫秒数不再判 Blink
+    attack-recent-ms: 3000
+    # 同一玩家 Blink 告警冷却（毫秒），防站立后恢复刷屏
+    emit-cooldown-ms: 10000
+  airjump:
+    enabled: true
+    # 空中跳跃脉冲允许次数
+    pulses: 2
+    # 最少空中 tick 才检查
+    min-air-ticks: 5
+    # 单 tick 上升超过跳跃速度 * ratio 计一次脉冲
+    jump-ratio: 0.9
+    # 脉冲统计窗口（毫秒）
+    pulse-window-ms: 2000
+  spider:
+    enabled: true
+    # 连续贴墙上升多少 tick 判爬墙；正常跳跃贴墙最多约 3-4 tick，8 才是持续爬墙
+    ticks: 8
+    max-horizontal: 0.4
+    min-dy: 0.15
+    max-dy: 0.4
+  jesus:
+    enabled: true
+    # 水面/岩浆面行走判定的最小空气 tick
+    air-ticks: 10
+    # 旧字段保留（不再用于判定）
+    max-dy: 0.05
+    # 液面连续跳跃多少次判 Jesus（外挂本质 = 持续自动跳水面）
+    pulses: 2
+    # 连续跳跃统计窗口（毫秒）
+    pulse-window-ms: 2000
+    # 单次跳跃脉冲需达到跳跃速度 * 该比例
+    jump-ratio: 0.7
+  noslowdown:
+    enabled: true
+    # 使用物品时速度高于极限 * ratio 判未减速
+    ratio: 0.8
+  criticals:
+    enabled: false
+    # 使用服务端官方 isCritical 实际伤害判定（站地/无下落却暴击 = 实锤）
+    damage-enabled: true
+    # 攻击前窗口内微偏移移动包数量下限
+    moves: 2
+    # 微偏移窗口（毫秒）
+    window-ms: 100
+    # 微偏移最大垂直幅度
+    tiny-max-dy: 0.05
+    # 攻击前水平位移低于该值（基本站立）才检查，避免正常移动攻击误报
+    max-horizontal: 0.1
+  throughwalls:
+    enabled: true
+  elytra:
+    enabled: true
+    max-speed: 2.6
+    # 鞘翅无烟花最大上升速度
+    boost-max: 2.0
+    # true：非原版鞘翅胸甲也判违规；false：兼容融合鞘翅插件
+    strict-no-item: false
+  vehicle:
+    enabled: true
+    # 载具速度上限（blocks/tick）；蓝冰船等官方高速移动可到 3-4，5.0 留足容差
+    max-speed: 5.0
+  climb:
+    enabled: true
+    # 攀爬速度上限（blocks/tick，原版梯子/藤蔓约 0.15；0.2 留容差）
+    max-speed: 0.2
+  fastfall:
+    enabled: true
+    # 下落速度上限（blocks/tick）。1.21.11 玩家下落公式 vy*0.98-0.08，
+    # 终端速度正好 4.0；4.2 留 5% 容差，正常高空跳落不会触发
+    max-speed: 4.2
+    # 超过该间隔的位移视为卡顿，不判
+    max-interval-ms: 120
+    # 最少空中 tick 才检查
+    min-air-ticks: 5
+  scaffold:
+    enabled: true
+    # 每秒脚下放置数量上限
+    max-places-per-second: 12
+    # 判定“脚下”的水平距离
+    near-distance: 2.5
+  place:
+    # 放置统计窗口（毫秒）
+    window-ms: 1000
+    # 放置后多少毫秒内挖掘同一位置视为放置宏
+    dig-window-ms: 100
+  fastplace:
+    enabled: true
+    # 每秒放置总数上限（更严格档位）
+    max-places: 20
+  multiplace:
+    enabled: true
+    # 单 tick 放置数量上限
+    max: 3
+  airplace:
+    enabled: true
+  fastbreak:
+    # 关闭：挖掘只认服务端实际 BlockBreakEvent 结果
+    enabled: false
+    # 实际破坏时间低于理论值 * ratio 才告警
+    min-ratio: 0.55
+    # 理论时间低于该毫秒数不判（太快没意义）
+    min-expected-ms: 500
+  instantmine:
+    enabled: false
+    # 理论时间大于该毫秒数、实际低于 ms 判瞬挖
+    min-expected-ms: 1000
+    ms: 100
+  multibreak:
+    enabled: false
+    # 单 tick 破坏方块数上限
+    max-breaks-per-tick: 2
+  wrongtool:
+    enabled: false
+    # 错误工具破坏时间低于空手理论时间 * ratio 判违规
+    ratio: 0.4
+    # 空手理论时间 = 硬度 * factor * 1000ms
+    hand-factor: 1.5
+  xray:
+    enabled: true
+    # 挖矿总数超过该值后才统计矿石占比
+    min-samples: 40
+    # 矿石占比超过该值判挖矿目标异常集中
+    ore-ratio: 0.8
+  airliquidbreak:
+    enabled: false
+  ticktimer:
+    enabled: true
+    # 每个游戏 tick 内移动包数量上限
+    max-flying-packets: 6
+  packetspam:
+    enabled: true
+    # 单 tick 攻击+点击+破坏总数上限；挥动包不计（攻击冷却下正常连点会有大量挥动包）
+    max: 20
+  attackwhilemining:
+    enabled: true
+    # 开始挖掘后多少毫秒内攻击判违规
+    ms: 100
+  animationspam:
+    # 已废弃：1.21+ 攻击冷却下快速连点会产生大量挥动包而无攻击包，
+    # 挥动包数量不能作为作弊证据，检测已从代码中移除
+    enabled: false
+    # 挥动包 > 攻击包 * factor + extra 判刷动画
+    factor: 3
+    # 挥动总数超过该值才开始检查
+    min-swings: 30
+    # 每累计多少次挥动检查一次
+    check-every: 50
+    # 额外容差
+    extra-allowance: 20
+  crash:
+    enabled: true
+    # 每秒背包点击数量超过该值判洪水
+    window-clicks: 40
+  window:
+    # 背包点击统计窗口（毫秒）
+    window-ms: 1000
+    # 拾取后多少毫秒内快速移动判包序异常
+    packet-order-ms: 100
+  chat:
+    enabled: true
+    # 聊天消息含换行符直接告警
+    newline: true
+    # 每秒消息数量上限（0 = 不限制）
+    spam-per-second: 5
+    # 聊天统计窗口（毫秒）
+    window-ms: 1000
+  lookpackets:
+    enabled: true
+    # 单 tick 旋转包数量上限（高刷新鼠标可能 3-4，5 留容差）
+    max: 5
+  backtrack:
+    enabled: true
+    # 该检测受网络波动影响大，只作低置信记录，不作为踢出依据
+    # ping 尖峰的 z-score 阈值
+    z-score: 4.5
+    # 最少 ping 样本数
+    min-samples: 20
+    # ping 标准差低于该值不检查
+    min-std: 1.0
+  attackrecheck:
+    enabled: true
+    # 攻击后多少毫秒用新命中盒复检 Reach
+    delay-ms: 50
+  slowfall:
+    enabled: true
+    # 刚出水瞬间仍受浮力影响，该毫秒数内不判缓降
+    water-exit-grace-ms: 3000
+    # 最少空中 tick（普通跳跃约 10-12 tick，30 以上才可能是持续缓降）
+    min-air-ticks: 30
+    # 连续多少 tick 落在缓降速度区间才判
+    min-consecutive-ticks: 4
+    # 同一玩家缓降告警冷却（毫秒）
+    emit-cooldown-ms: 1500
+    # 下落速度高于该值判缓慢下落（负数）
+    max-dy: -0.05
+    # 下落速度低于该值视为正常下落（负数）
+    min-dy: -0.15
+  step:
+    enabled: true
+    # 同 tick 双上升包判定：间隔上限
+    max-interval-ms: 10
+    # 单包最小上升量
+    min-dy: 0.1
+    # 双包上升合计下限
+    min-sum: 0.6
+    # 只判客户端声称“仍在地面”的上升，排除普通跳跃（跳跃期间 onGround=false）
+    require-on-ground: true
+  badpackets:
+    # 仅作为极端洪水兜底；不按攻击速度/挥动包判定
+    max-attacks-per-tick: 5
+    max-swings-per-tick: 2
+    max-clicks-per-tick: 8
+  scan:
+    # 每多少次移动扫描一次抗体库
+    antibody-every-moves: 100
+    # 每多少次移动扫描一次延迟回滚
+    backtrack-every-moves: 50
+    # ping 历史样本数
+    ping-samples: 100
+    # 实体命中盒历史保留时长（毫秒）
+    hitbox-history-ms: 1500
+    # 命中盒历史最大快照数
+    hitbox-max-snapshots: 120
+    # 多目标检测窗口（毫秒）
+    target-window-ms: 1000
+
+trust:
+  enabled: true
+  # 新玩家默认信任等级（0-5，越高越信任）
+  default-level: 3
+  # 最低信任等级
+  min-level: 1
+
+mitigation:
+  # 总主动检测关闭时即使这里为 true 也不会削弱玩家伤害
+  enabled: true
+  # 可疑玩家受到的伤害倍率（软惩罚）
+  damage-multiplier: 0.5
+  # 达到该置信度才开始软惩罚
+  activation-confidence: 0.8
+  # 参与软惩罚的检测类别（命中其中任一类别且达到置信度即削弱伤害）
+  categories:
+    - AIM
+    - AUTO_CLICKER
+    - AUTO_CLICKER_RIGHT
+    - KILL_AURA
+    - REACH
+    - ANTIBODY
+    - PACKET_FLY
+    - CRITICALS
+    - THROUGH_WALLS
+
+exemptions:
+  # 进服宽限期（毫秒）：期间只同步坐标、不判任何移动，避免出生点/传送包误报
+  join-grace-ms: 3000
+  # 每 tick 位移超过该格数：服务器授权传送（TPA/Warp/领地/Home）才豁免；
+  # 未授权传送级位移按客户端传送作弊处理
+  teleport-jump-blocks: 12.0
+  # 传送后豁免时长（毫秒）
+  teleport-ms: 1500
+  # 重生后豁免时长（毫秒）
+  respawn-ms: 2000
+  # 受到击退后豁免时长（毫秒）
+  velocity-ms: 800
+
+signatures:
+  enabled: true
+  # 传送后多少毫秒内不匹配移动指纹
+  teleport-exempt-ms: 1500
+  # PacketFly y-420 大位移包（WurstB+ PacketFly 指纹）
+  packetfly:
+    enabled: true
+    # 单 tick 下降超过该值（负数绝对值）才匹配
+    min-dy: 400
+    confidence: 0.98
+  # PacketFly 双移动包：dy 与目标值相差小于 tolerance 才匹配
+  dual-move:
+    enabled: true
+    dy: -0.01
+    tolerance: 0.001
+    confidence: 0.95
+    # 需要短时间内连续命中几次才判（单次 dy 巧合不算）
+    min-hits: 3
+    # 命中统计窗口（毫秒）
+    window-ms: 2000
+  # Meteor AntiKick 移动包改写指纹
+  meteor-anti-kick:
+    enabled: true
+    dy: -0.0313
+    tolerance: 0.0005
+    confidence: 0.9
+    # 需要短时间内连续命中几次才判（单次 dy 巧合不算）
+    min-hits: 3
+    # 命中统计窗口（毫秒）
+    window-ms: 2000
+
+antibody:
+  enabled: true
+  # 自动入库最低置信度：只有封包指纹/AI 判定达到该值才记入抗体库
+  min-confirm-confidence: 0.95
+  # 自动学习家族名单：命中这些家族的高置信强特征才会自动入库，可直接改配置
+  auto-learn-families:
+    - packetfly-y420
+    - aura-bot
+    - wurstb-flight
+    - wurstb-speed
+    - wurstb-packetfly
+    - wurstb-nofall
+    - wurstb-step
+    - wurstb-spider
+    - wurstb-jesus
+    - wurstb-dolphin
+    - wurstb-airjump
+    - wurstb-criticals
+    - wurstb-reach
+    - wurstb-killaura
+    - wurstb-scaffold
+    - wurstb-nuker
+    - wurstb-fastbreak
+    - wurstb-fastplace
+    - wurstb-fastladder
+    - wurstb-noslowdown
+    - wurstb-novelocity
+    - wurstb-blink
+    - wurstb-timer
+    - wurstb-boatfly
+    - wurstb-elytrafly
+    - wurstb-jetpack
+    - wurstb-glide
+    - wurstb-highjump
+    - wurstb-bunnyhop
+    - wurst-client-criticals
+  # 旧版本兼容字段：min-confirm-confidence 存在时优先使用后者
+  auto-learn-min-confidence: 0.95
+  # 玩家行为向量与抗体相似度达到该值判命中
+  match-threshold: 0.85
+  # 抗体库最大家族数（防止无限膨胀）
+  max-antibodies: 200
+  # 是否自动学习新外挂特征
+  auto-learn: true
+  # 学习阈值（旧版本兼容字段，保留）
+  learn-threshold: 0.8
+
+aurabot:
+  enabled: true
+  # 对同一玩家生成诱饵实体的冷却（毫秒）
+  cooldown-ms: 5000
+  # 诱饵生成在视线前方距离
+  distance: 1.5
+  # 诱饵生成高度偏移
+  y-offset: 1.0
+  # 诱饵存在时长（tick）
+  lifetime-ticks: 5
+
+ai:
+  enabled: true
+  base-url: "https://api.agnes-ai.cn"
+  model: "agnes-2.5-flash"
+  # 留空则读取环境变量 AGNES_API_KEY
+  api-key: ""
+  max-tokens: 1200
+  timeout-seconds: 60
+  # AI 周期复盘间隔（秒，最低 10）
+  interval-seconds: 60
+  # AI 判定可疑且置信度达到该值才触发处置
+  min-confidence: 0.8
+  # 候选置信度达到该值就立即提交 AI 复盘（0-1）
+  min-submit-confidence: 0.3
+  # AI 连续故障后的熔断分钟数
+  circuit-break-minutes: 5
+  # 同一玩家两次提交 AI 的最小间隔（秒）
+  cooldown-seconds: 10
+
+storage:
+  # 留空使用本地 JSON；填写 MariaDB 后启用长期记忆/警告库/抗体库
+  database:
+    url: ""
+    user: ""
+    password: ""
+  kaelorvynban:
+    # 可指向代理端 KaelorvynBan config.properties，自动读取封禁库
+    config-file: ""
+    schema: "kaerban"
+
+punish:
+  # 累计多少次警告后封禁
+  warnings-before-ban: 3
+  # 警告过期天数
+  warning-expire-days: 7
+  # 踢出前锁定秒数（红色标题 + 禁止任何按键）
+  pre-kick-delay-seconds: 10
+  # AI 确认违规后的红字警告时长（秒），到时直接踢出
+  ai-pre-kick-delay-seconds: 5
+  # 同一玩家两次踢出的冷却秒数
+  cooldown-seconds: 30
+  # 是否执行踢出（false 只记录）
+  kick: true
+  # 是否执行封禁
+  ban: false
+  # 是否要求 AI 复核确认后才处置（强指纹/管理员手动警告除外）
+  require-ai-confirm: true
+  # 封禁是否全服广播
+  broadcast-ban: true
+  # 踢出后回到的代理大厅（配合代理端使用）
+  lobby-server: "lobby"
+  # 封禁时长（小时）
+  ban-duration-hours: 168
+  messages:
+    kick-title: "&c&lKaelorvyn 安全中心"
+    kick-subtitle: "&c&l检测到可疑行为：{reason}"
+    kick-actionbar: "&c&l第 {count} 次警告，还剩 {left} 次将被封禁"
+    kick-screen:
+      - "&c服务器检测到：&f{reason}"
+      - "&7AI 分析：&f{ai_reason}"
+      - "{warning_line}"
+      - "&7如属误判请联系管理员，QQ群：1018669174"
+    ban-screen:
+      - "&c你已被 Kaelorvyn 服务器封禁"
+      - "&7原因：{reason}"
+      - "&7到期时间：{expire}"
+      - "&7申诉请加 QQ群：1018669174"
+
+notice:
+  enabled: true
+  # 玩家每次切换服务器/进入时收到的安全提示
+  message:
+    - "&8[&bKaelorvyn 安全中心&8]"
+    - "&f请珍惜自己的账号。"
+    - "&f本服务器对开挂行为零容忍。"
+    - "&f本服务器已累计处理违规账号 &c{banned}&f 个。"
+
+alerts:
+  enabled: true
+  prefix: "&8[&bKaelorvynGuard&8]"
+  format: "&7{player} &c疑似: &f{category} &7置信度 &e{confidence}%"
+  # 后台/管理告警最低置信度
+  confidence: 0.7
+
+# 预留：未来管理员名单（当前豁免使用权限 kg.bypass 或 trusted-uuids.yml）
+trusted-admins: []

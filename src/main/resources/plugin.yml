@@ -1,0 +1,31 @@
+name: KaelorvynGuard
+version: 1.0.3
+main: com.kael.guard.KaelorvynGuard
+api-version: '1.21'
+softdepend: [packetevents]
+description: Kaelorvyn 服务端反作弊
+
+commands:
+  kg:
+    description: KaelorvynGuard 管理指令
+    usage: /kg <reload|info|stats|review|warn|notice|testkick>
+  kinform:
+    description: 举报并查询玩家最近一段时间的异常行为记录
+    usage: /kinform <玩家> <1m-3d>
+
+permissions:
+  kg.admin:
+    description: 允许使用 KaelorvynGuard 管理指令
+    default: op
+  kg.inform:
+    description: 允许提交玩家举报复核
+    default: true
+  kg.alerts:
+    description: 接收反作弊告警
+    default: op
+  kg.bypass:
+    description: 绕过全部检测
+    default: false
+  kg.notice.bypass:
+    description: 不接收进服安全通知
+    default: false
